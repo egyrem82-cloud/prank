@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔒 Togame Security Protocol</title>
+  <meta name="gemini-key" content="YOUR_GEMINI_KEY_HERE" />
+  <meta name="groq-key" content="YOUR_GROQ_KEY_HERE" />
+  <style>
+    :root {
+      --primary: #2ec4b6;
+      --primary-dark: #1a9e8e;
+      --accent: #ff6b6b;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f1f5f9;
+      --text-light: #94a3b8;
+    }
+
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Segoe UI', 'Noto Sans', monospace;
+    }
+
+    body {
+      background: #000;
+      color: #0f0;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* 🎁 Gift Screen (unchanged) */
+    #gift-screen {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+
+    .gift-title {
+      font-size: 2.8rem; font-weight: 800;
+      background: linear-gradient(45deg, #2ec4b6, #ff9e7d);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center;
+    }
+
+    .gift-box {
+      width: 200px; height: 200px; cursor: pointer;
+      transform: scale(1); transition: all 0.4s;
+    }
+
+    .gift-box:hover { transform: scale(1.05) rotate(-2deg); }
+
+    /* ❌ PRANK HACK SCREEN — UPRADE! */
+    #hack-screen {
+      position: fixed; inset: 0;
+      background: #000;
+      display: none;
+      flex-direction: column;
+      z-index: 500;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      padding: 10px;
+    }
+
+    #terminal-output {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .terminal-line {
+      white-space: nowrap;
+      opacity: 0;
+      animation: fadeIn 0.02s forwards;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .matrix-rain {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .matrix-char {
+      position: absolute;
+      font-size: 16px;
+      color: #0f0;
+      opacity: 0.7;
+    }
+
+    .countdown {
+      position: fixed;
+      top: 20px; right: 20px;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-size: 1.2rem;
+      color: #ff6b6b;
+      font-weight: bold;
+      z-index: 1000;
+      box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+    }
+
+    /* 💬 Chat Screen (unchanged) */
+    #main-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      height: 100vh;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+    }
+
+    .chat-container {
+      width: 100%; max-width: 800px; background: var(--card-bg);
+      border-radius: 20px; overflow: hidden; flex: 1;
+    }
+
+    .chat-header {
+      background: linear-gradient(90deg, #1e293b, #334155);
+      padding: 18px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    .avatar { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.4rem; }
+    .avatar-togame { background: linear-gradient(135deg, #5d4037, #3e2723); }
+
+    .chat-messages {
+      flex: 1; padding: 20px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 20px;
+      background: #0f172a;
+    }
+
+    .message {
+      max-width: 85%; padding: 16px 20px; border-radius: 20px;
+      animation: fadeIn 0.5s ease forwards; opacity: 0;
+    }
+
+    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+    .message.togame { background: rgba(46, 196, 182, 0.1); align-self: flex-start; }
+    .message.user { background: rgba(100, 116, 139, 0.3); align-self: flex-end; }
+
+    .typing-indicator {
+      display: none; align-self: flex-start;
+      background: rgba(46, 196, 182, 0.1); padding: 16px 20px;
+      border-radius: 20px;
+    }
+
+    .typing-indicator span {
+      height: 10px; width: 10px; margin: 0 2px; background: #94a3b8;
+      border-radius: 50%; display: inline-block;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .chat-input {
+      padding: 18px; background: #0f172a;
+      display: flex; gap: 10px;
+    }
+
+    .chat-input input {
+      flex: 1; padding: 14px 20px; background: #1e293b;
+      border: 1px solid #334155; border-radius: 30px;
+      color: var(--text);
+    }
+
+    .chat-input button {
+      background: var(--primary); color: white; border: none;
+      border-radius: 50%; width: 50px; height: 50px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- 🎁 Gift Screen -->
+  <div id="gift-screen">
+    <h1 class="gift-title">🔒 Hadiah dari Togame</h1>
+    <p style="color:#cbd5e1; margin:16px 0; text-align:center">"Aku menyisipkan protokol keamanan. Kalau kau gagal... sistem akan mengunci diri."</p>
+    <div class="gift-box" id="giftBox">
+      <svg viewBox="0 0 200 200">
+        <rect x="20" y="50" width="160" height="100" rx="10" fill="#1e293b" stroke="#0f0" stroke-width="3"/>
+        <rect x="90" y="20" width="20" height="30" fill="#ff6b6b"/>
+        <path d="M100 20 L100 150" stroke="#0f0" stroke-width="4"/>
+        <text x="100" y="100" text-anchor="middle" fill="#0f0" font-size="12">SECURE</text>
+      </svg>
+    </div>
+    <p style="color:#94a3b8; margin-top:20px">Klik & seret ke atas untuk membuka — hati-hati.</p>
+  </div>
+
+  <!-- ❌ HACK SCREEN — FULL PRANK MODE -->
+  <div id="hack-screen">
+    <div class="matrix-rain" id="matrixRain"></div>
+    <div id="terminal-output"></div>
+    <div class="countdown" id="countdown">60</div>
+  </div>
+
+  <!-- 💬 Chat Screen -->
+  <div id="main-screen">
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="avatar avatar-togame">T</div>
+        <div><h2>Togame</h2><p style="color:#94a3b8">Online • Sedang menertawakanmu</p></div>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>
+      <div class="chat-input">
+        <input type="text" id="userInput" placeholder="Ketik sesuatu... (atau akui kau panik)">
+        <button id="sendBtn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =============== 🎁 BUKA KADO ===============
+    const giftBox = document.getElementById('giftBox');
+    let isDragging = false, startY = 0;
+
+    ['mousedown', 'touchstart'].forEach(ev => {
+      giftBox.addEventListener(ev, e => {
+        isDragging = true;
+        startY = ev === 'mousedown' ? e.clientY : e.touches[0].clientY;
+        e.preventDefault();
+      });
+    });
+
+    ['mousemove', 'touchmove'].forEach(ev => {
+      document.addEventListener(ev, e => {
+        if (!isDragging) return;
+        const currentY = (ev === 'mousemove' ? e.clientY : e.touches[0].clientY) - startY;
+        if (currentY < -80) openGift();
+      });
+    });
+
+    ['mouseup', 'touchend'].forEach(ev => {
+      document.addEventListener(ev, () => isDragging = false);
+    });
+
+    function openGift() {
+      giftBox.style.transform = 'scale(0.7) rotateX(90deg)';
+      setTimeout(() => {
+        document.getElementById('gift-screen').style.display = 'none';
+        showQuiz();
+      }, 400);
+    }
+
+    // =============== ❓ KUIS ===============
+    function showQuiz() {
+      const quiz = document.createElement('div');
+      quiz.id = 'quiz';
+      quiz.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:20px;color:#0f0;font-family:monospace;`;
+      quiz.innerHTML = `
+        <h2 style="font-size:2rem;margin-bottom:20px">🔐 Togame's Authentication</h2>
+        <p style="margin-bottom:30px">"Jawab dengan logika—bukan perasaan."</p>
+        <div style="background:#0a0f1a;padding:20px;border-radius:12px;width:90%;max-width:500px;margin-bottom:20px">
+          <p>1. Apa alamat IP internal Togame?</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px">
+            <button class="opt" data-correct="false">192.168.1.1</button>
+            <button class="opt" data-correct="true">127.0.0.1</button>
+            <button class="opt" data-correct="false">0.0.0.0</button>
+          </div>
+        </div>
+        <div style="background:#0a0f1a;padding:20px;border-radius:12px;width:90%;max-width:500px">
+          <p>2. Apa password default-nya?</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px">
+            <button class="opt" data-correct="false">password123</button>
+            <button class="opt" data-correct="false">iloveyou</button>
+            <button class="opt" data-correct="true">[REDACTED]</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(quiz);
+
+      document.querySelectorAll('.opt').forEach(btn => {
+        btn.style.cssText = `padding:10px 20px;background:#000;color:#0f0;border:1px solid #0f0;cursor:pointer;`;
+        btn.onclick = () => {
+          const correct = btn.dataset.correct === 'true';
+          btn.style.background = correct ? '#003300' : '#330000';
+          if (correct) btn.textContent = '✓ ' + btn.textContent;
+          else btn.textContent = '✗ ' + btn.textContent;
+          
+          setTimeout(() => {
+            quiz.remove();
+            if (document.querySelectorAll('.opt[data-correct="true"] + [style*="background: #003300"]').length === 2) {
+              // Benar → langsung ke chat
+              document.getElementById('main-screen').style.display = 'flex';
+              addMessage("Protokol dilewati. Kau... cukup logis hari ini.", 'togame');
+              document.getElementById('userInput').focus();
+            } else {
+              // ❌ SALAH → PRANK LEVEL MAX!
+              triggerFullPrank();
+            }
+          }, 1000);
+        };
+      });
+    }
+
+    // =============== 💀 FULL PRANK — LOCKDOWN MODE ===============
+    let prankActive = false;
+    let countdown = 60;
+
+    function triggerFullPrank() {
+      prankActive = true;
+      const hackScreen = document.getElementById('hack-screen');
+      const countdownEl = document.getElementById('countdown');
+      hackScreen.style.display = 'flex';
+      
+      // 🔒 LOCK SEMUA EXIT
+      lockDevice();
+      
+      // 🌧️ Matrix Rain
+      initMatrixRain();
+      
+      // 💻 Terminal Spam
+      startTerminalSpam();
+      
+      // ⏳ Countdown
+      countdownEl.textContent = countdown;
+      const countInterval = setInterval(() => {
+        countdown--;
+        countdownEl.textContent = countdown;
+        if (countdown <= 0) {
+          clearInterval(countInterval);
+          endPrank();
+        }
+      }, 1000);
+    }
+
+    function lockDevice() {
+      // Disable semua shortcut & tombol
+      const disableKeys = (e) => {
+        if (!prankActive) return;
+        const blockedKeys = [
+          'F5', 'F11', 'Escape', 'Backspace', 'Alt', 'Meta', 'Control',
+          'Tab', 'Insert', 'Delete', 'Home', 'End', 'PageUp', 'PageDown'
+        ];
+        if (
+          blockedKeys.includes(e.key) ||
+          (e.ctrlKey && ['r', 'R', 'w', 'W', 't', 'T', 'n', 'N'].includes(e.key)) ||
+          (e.altKey && e.key === 'F4') ||
+          (e.metaKey && ['q', 'w'].includes(e.key.toLowerCase()))
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      };
+
+      // Pasang di semua event
+      document.addEventListener('keydown', disableKeys, true);
+      document.addEventListener('keyup', disableKeys, true);
+      document.addEventListener('keypress', disableKeys, true);
+      window.addEventListener('beforeunload', (e) => {
+        if (prankActive) {
+          e.preventDefault();
+          e.returnValue = '';
+          return '';
+        }
+      });
+
+      // Blokir klik kanan & devtools
+      document.addEventListener('contextmenu', e => prankActive && e.preventDefault());
+      document.addEventListener('visibilitychange', () => {
+        if (prankActive && !document.hidden) {
+          // Kalau coba buka tab lain → fokus balik
+          window.focus();
+        }
+      });
+
+      // Cegah swipe back di mobile
+      history.pushState(null, null, location.href);
+      window.addEventListener('popstate', () => {
+        if (prankActive) {
+          history.pushState(null, null, location.href);
+          alert("🔒 Sistem terkunci. Tunggu 60 detik.");
+        }
+      });
+    }
+
+    function initMatrixRain() {
+      const matrixRain = document.getElementById('matrixRain');
+      matrixRain.innerHTML = '';
+      const chars = '01';
+      const fontSize = 14;
+      const columns = Math.floor(window.innerWidth / fontSize);
+      
+      const drops = [];
+      for (let i = 0; i < columns; i++) drops[i] = Math.random() * -100;
+
+      setInterval(() => {
+        matrixRain.innerHTML = '';
+        for (let i = 0; i < drops.length; i++) {
+          const text = chars[Math.floor(Math.random() * chars.length)];
+          const char = document.createElement('div');
+          char.className = 'matrix-char';
+          char.style.left = i * fontSize + 'px';
+          char.style.top = drops[i] * fontSize + 'px';
+          char.style.fontSize = fontSize + 'px';
+          char.textContent = text;
+          matrixRain.appendChild(char);
+          
+          if (drops[i] * fontSize > window.innerHeight && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          drops[i]++;
+        }
+      }, 50);
+    }
+
+    function startTerminalSpam() {
+      const terminal = document.getElementById('terminal-output');
+      terminal.innerHTML = '';
+
+      const commands = [
+        "> sudo init --protocol=togame_v2.5",
+        "> Loading neural firewall...",
+        "> Bypassing emotional encryption layer...",
+        "> Accessing: /home/togame/secrets/first_glance.mem",
+        "> Extracting: [REDACTED]_heart_rate_log.dat",
+        "> WARNING: Tsundere module v3.1.4 detected instability!",
+        "> Injecting: logic_stabilizer.patch",
+        "> Overwrite personality? [Y/n]: Y",
+        "> SUCCESS: empathy_core enabled (hidden mode)",
+        "> Scanning user behavior...",
+        "> Pattern match: 'blushing when near Togame' → CONFIRMED",
+        "> Log: 'Togame is... not entirely annoying' → SAVED",
+        "> Generating fake BSOD in 3... 2... 1...",
+        "> ...Just kidding. But you believed it. How illogical.",
+        "> Initiating 60-second lockdown for security audit.",
+        "> Do not attempt to exit. It’s futile. And rude."
+      ];
+
+      let i = 0;
+      const spamInterval = setInterval(() => {
+        if (!prankActive) {
+          clearInterval(spamInterval);
+          return;
+        }
+        
+        // Tambahkan 3-5 baris sekaligus biar spam
+        for (let j = 0; j < 3 && i < 200; j++, i++) {
+          const line = document.createElement('div');
+          line.className = 'terminal-line';
+          
+          if (i < commands.length) {
+            line.textContent = commands[i];
+          } else {
+            // Spam palsu
+            const ip = `192.168.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
+            const action = ['SCAN', 'DUMP', 'ENCRYPT', 'OBFUSCATE', 'LOG'][Math.floor(Math.random()*5)];
+            const file = `data_${Math.floor(Math.random()*1000)}.bin`;
+            line.textContent = `> ${action} ${ip} → ${file} [${Math.floor(Math.random()*100)}%]`;
+          }
+          
+          terminal.appendChild(line);
+          terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        // Simulasi "lag" setiap 10 detik
+        if (i % 50 === 0) {
+          simulateLag();
+        }
+      }, 80);
+    }
+
+    function simulateLag() {
+      // Buat HP nge-lag 1-2 detik (tanpa freeze total)
+      const start = Date.now();
+      while (Date.now() - start < 800) {
+        // busy wait — cukup buat HP low-end nge-lag
+      }
+      // Tambah efek "CPU spike" palsu
+      document.body.style.filter = 'brightness(1.1)';
+      setTimeout(() => document.body.style.filter = '', 300);
+    }
+
+    function endPrank() {
+      prankActive = false;
+      
+      // Hapus lock
+      document.querySelectorAll('*').forEach(el => {
+        el.onkeydown = null;
+        el.onkeypress = null;
+        el.onkeyup = null;
+      });
+      window.onbeforeunload = null;
+      
+      document.getElementById('hack-screen').style.display = 'none';
+      document.getElementById('main-screen').style.display = 'flex';
+      
+      // Pesan akhir dari Togame
+      addMessage("Waktunya habis. Kau panik selama 60 detik.", 'togame');
+      setTimeout(() => {
+        addMessage("Kalau kau panik... berarti kau peduli. Logis, kan?", 'togame');
+      }, 800);
+      document.getElementById('userInput').focus();
+    }
+
+    // =============== 💬 CHAT ENGINE ===============
+    const chatMessages = document.getElementById('chatMessages');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const typingIndicator = document.getElementById('typingIndicator');
+
+    function addMessage(text, sender = 'user', animate = true) {
+      const div = document.createElement('div');
+      div.classList.add('message');
+      if (sender === 'togame') div.classList.add('togame');
+      else if (sender === 'user') div.classList.add('user');
+
+      const safe = text.replace(/[<>&]/g, c => ({'<':'&lt;', '>':'&gt;', '&':'&amp;'}[c])).replace(/\n/g, '<br>');
+      div.innerHTML = `${safe}<div style="font-size:0.7rem;opacity:0.7;margin-top:6px;text-align:right">${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>`;
+      
+      if (animate) {
+        div.style.opacity = '0';
+        div.style.transform = 'translateY(15px)';
+        chatMessages.appendChild(div);
+        setTimeout(() => {
+          div.style.opacity = '1';
+          div.style.transform = 'translateY(0)';
+        }, 10);
+      } else {
+        chatMessages.appendChild(div);
+      }
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    sendBtn.onclick = () => {
+      const msg = userInput.value.trim();
+      if (!msg) return;
+      addMessage(msg, 'user');
+      userInput.value = '';
+      
+      typingIndicator.style.display = 'block';
+      setTimeout(() => {
+        typingIndicator.style.display = 'none';
+        const replies = [
+          "Hmph. Responsmu terlalu emosional. Aku akan abaikan—tapi simpan di log.",
+          "Kalau kau bilang 'maaf' lagi, aku akan reset percakapan. ...Jangan coba-coba.",
+          "...Ada yang ingin kau tanyakan? Selain soal perasaanku. Itu classified.",
+          "Aku sedang memantau denyut nadimu dari sini. Jangan bohong."
+        ];
+        addMessage(replies[Math.floor(Math.random() * replies.length)], 'togame');
+      }, 1200);
+    };
+
+    userInput.onkeypress = e => e.key === 'Enter' && sendBtn.click();
+  </script>
+</body>
+</html>
